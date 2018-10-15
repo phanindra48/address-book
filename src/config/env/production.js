@@ -1,3 +1,5 @@
+const postgresAdapter = require('sails-postgresql');
+
 /**
  * Production environment settings
  *
@@ -14,5 +16,23 @@ module.exports = {
   prefix: '/',
   urls: {
     api: 'http://api.contact.local'
+  },
+  orm: {
+    adapters: {
+      postgres: postgresAdapter
+    },
+    datastores: {
+      localPostgres: {
+        adapter: 'postgres',
+        host: 'localhost',
+        database: 'contactbook',
+        user: 'postgres',
+        password: 'postgres'
+      }
+    },
+    defaults: {
+      connection: 'localPostgres',
+      migrate: 'safe'
+    }
   }
 };

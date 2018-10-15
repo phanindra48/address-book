@@ -2,11 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const http = require('http');
+const assign = require('lodash').assign;
 
+const orm = require('./orm');
 const config = require('./src/config');
 const routes = require('./src/routes');
 const responses = require('./src/responses');
-const morgan = require('morgan')
+const morgan = require('morgan');
 
 const app = express();
 
@@ -39,7 +41,6 @@ app.get('/health', (req, res) => {
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
-  console.log(req.path);
   const err = new Error('Not Found');
   err.status = 404;
   next(err);
@@ -48,7 +49,7 @@ app.use((req, res, next) => {
 app.use((error, req, res) => {
   res.status(error.status || 500);
   res.json({
-    message: 'Oops! Couldn\'t perform this action at the moment. Please try again',
+    message: "Oops! Couldn't perform this action at the moment. Please try again",
     error
   });
 });
@@ -92,14 +93,36 @@ server.on('listening', () => {
 });
 
 function start(done) {
+  orm.configureCollections();
+
   /**
-   * Listen on provided port, on all network interfaces.
+   * Init ORM and server listen on port
    */
-  server.listen(port, done);
+  orm.initialize(assign(config.orm), (err, models) => {
+    if (err) throw err;
+
+    orm.models = models.collections;
+    orm.datastores = models.datastores;
+
+    /**
+     * Listen on provided port, on all network interfaces.
+     */
+    server.listen(port, done);
+  });
+}
+
+/**
+ * initialize ORM here
+ */
+if (!module.parent) {
+  start();
 }
 
 function lower(done) {
-  server.close(done);
+  orm.teardown(err => {
+    if (err) return done(err);
+    return server.close(done);
+  });
 }
 
 module.exports = {
